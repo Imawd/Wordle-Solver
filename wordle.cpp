@@ -31,6 +31,7 @@ std::set<std::string> wordle(
     // Add your code here
     std::set<std::string> words;
 
+
     if (in.empty()) return words;
 
     else if (in.find("-") == string::npos) words.insert(in);
@@ -47,11 +48,15 @@ bool validateWord(
     const std::string& floating,
     const std::set<std::string>& dict)
 {
-    //check first if all the floating characters are present in the word
+    //check first if all the floating characters (including multiplicity if there are duplicates) are present in the word
     for (int i = 0; i < floating.size(); i++) {
-        if (word.find(floating[i]) == string::npos) return false; 
+        if (word.find(floating[i]) == string::npos) return false;
+        std::string float_clone = floating;
+        float_clone.erase(i, 1);
+        if (!float_clone.empty()) return validateWord(word, float_clone, dict); 
     }
 
+    //check if word is in dictionary
     if (dict.find(word) == dict.end()) return false;
 
     return true;
@@ -64,7 +69,7 @@ void generateWordsandValidate(
     std::string word,
     std::set<std::string>& words) 
 {
-    
+        
     //first check if word length and input length are same as that means we have a full word with no blanks
     int dash_count = 0;
     for (int i = word.size(); i < in.size(); i++) {
@@ -73,6 +78,7 @@ void generateWordsandValidate(
         }
     }
 
+    //if number of chars in word = number of chars in input then add it to words set
     if (word.size() == in.size()) {
         if(validateWord(word, floating, dict)) {
             words.insert(word);
@@ -80,20 +86,25 @@ void generateWordsandValidate(
         return;
     }
 
+    //if given corresponding character in 'in' isn't a '-', simply add character to word and then recurse
     else if (in[word.size()] != '-') {
         word += in[word.size()]; 
         generateWordsandValidate(in, floating, dict, word, words);
     }
     
+    //if there are as many floats as there are missing letters
+    //instead of generating all possible combinations with all letters, only generate all possible combinations with floating letters
+    //then recurse which leads to a handful of combinations and thus lower runtime.
     else if (floating.size() == dash_count) {
         for (int i = 0; i < floating.size(); i++) {
             std::string float_clone = floating;
-            word += float_clone[i];
+            word += floating[i];
             float_clone.erase(i, 1);
             generateWordsandValidate(in, float_clone, dict, word, words);
         }
     }
 
+    //generate every possible combo for non-floating-letter blanks 
     else {
         for (char letter = 'a'; letter <= 'z'; ++letter) {
             std::string float_clone = floating;
